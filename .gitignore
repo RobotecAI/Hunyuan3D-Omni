@@ -122,3 +122,5 @@ cython_debug/
 
 omni_inference_results
 weights
+
+workdir/
