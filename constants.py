@@ -4,11 +4,6 @@ Constants and error messages for Hunyuan3D API server.
 
 # Error messages
 SERVER_ERROR_MSG = "**NETWORK ERROR DUE TO HIGH TRAFFIC. PLEASE REGENERATE OR REFRESH THIS PAGE.**"
-MODERATION_MSG = "YOUR INPUT VIOLATES OUR CONTENT MODERATION GUIDELINES. PLEASE TRY AGAIN."
-
-# Default values
-DEFAULT_SAVE_DIR = 'gradio_cache'
-DEFAULT_WORKER_ID = None  # Will be generated if None
 
 # API metadata
 API_TITLE = "Hunyuan3D API Server"
@@ -47,10 +42,10 @@ API_LICENSE_INFO = {
 API_TAGS_METADATA = [
     {
         "name": "generation",
-        "description": "3D model generation endpoints. Generate 3D models from 2D images with optional textures.",
+        "description": "3D model generation endpoints. Generate 3D models from 2D images.",
     },
     {
         "name": "status",
-        "description": "Task status and health check endpoints. Monitor generation progress and service health.",
+        "description": "Health check endpoint. Monitor service health.",
     },
 ]
