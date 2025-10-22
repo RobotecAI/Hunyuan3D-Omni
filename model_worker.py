@@ -1,4 +1,5 @@
 import asyncio
+import threading
 import trimesh
 from inference import normalize_mesh
 from hy3dshape.pipelines import Hunyuan3DOmniSiTFlowMatchingPipeline
@@ -39,8 +40,8 @@ class ModelWorker:
         self.enable_flashvdm = enable_flashvdm
         self.seed = seed
         self.clean_cache = clean_cache
-
-        self.pipeline = Hunyuan3DOmniSiTFlowMatchingPipeline.from_pretrained(model_path=self.model_path, fast_decode=self.enable_flashvdm)
+        self.pipeline = None
+        self._load_lock = threading.Lock()
 
         if self.clean_cache:
             for name in os.listdir(self.save_dir):
@@ -53,24 +54,55 @@ class ModelWorker:
                 except Exception as e:
                     print(f"Failed to delete {path}: {e}")
 
+    def _load_pipeline(self):
+        # simple double‑check pattern
+        if self.pipeline is None:
+            with self._load_lock:
+                if self.pipeline is None:
+                    self.pipeline = Hunyuan3DOmniSiTFlowMatchingPipeline.from_pretrained(
+                        model_path=self.model_path,
+                        fast_decode=self.enable_flashvdm
+                    )
+
+    def _unload_pipeline(self):
+        if self.pipeline is not None:
+            # Clean up GPU memory
+            del self.pipeline
+            self.pipeline = None
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+    async def unload_after_idle(self, delay=300):
+        await asyncio.sleep(delay)
+        if not self.model_semaphore.locked() and self.pipeline is not None:
+            self._unload_pipeline()
+
     async def generate_voxel(self, image: Image.Image, point_cloud: bytes, uid: str):
         async with self.model_semaphore:
+            self._load_pipeline()
             final_file_path, uid = await asyncio.to_thread(self._generate_voxel, image, point_cloud, uid)
+            asyncio.create_task(self.unload_after_idle())
             return final_file_path, uid
 
     async def generate_bbox(self, image: Image.Image, bbox: list[float], uid: str):
         async with self.model_semaphore:
+            self._load_pipeline()
             final_file_path, uid = await asyncio.to_thread(self._generate_bbox, image, bbox, uid)
+            asyncio.create_task(self.unload_after_idle())
             return final_file_path, uid
 
     async def generate_point(self, image: Image.Image, point_cloud: bytes, uid: str):
         async with self.model_semaphore:
+            self._load_pipeline()
             final_file_path, uid = await asyncio.to_thread(self._generate_point, image, point_cloud, uid)
+            asyncio.create_task(self.unload_after_idle())
             return final_file_path, uid
 
     async def generate_pose(self, image: Image.Image, pose_config: dict[str, str], uid: str):
         async with self.model_semaphore:
+            self._load_pipeline()
             final_file_path, uid = await asyncio.to_thread(self._generate_pose, image, pose_config, uid)
+            asyncio.create_task(self.unload_after_idle())
             return final_file_path, uid
 
     @torch.inference_mode()
@@ -107,7 +139,6 @@ class ModelWorker:
 
         if self.low_vram_mode:
             torch.cuda.empty_cache()
-
         return archive_dir + ".zip", uid
 
     @torch.inference_mode()
@@ -142,7 +173,6 @@ class ModelWorker:
 
         if self.low_vram_mode:
             torch.cuda.empty_cache()
-
         return final_save_path, uid
 
     @torch.inference_mode()
@@ -179,12 +209,10 @@ class ModelWorker:
 
         if self.low_vram_mode:
             torch.cuda.empty_cache()
-
         return final_save_path, uid
 
     @torch.inference_mode()
     def _generate_bbox(self, image: Image.Image, bbox: list[float], uid: str):
-
         os.makedirs(self.save_dir, exist_ok=True)
         print(f"Processing: {uid}")
 
@@ -222,5 +250,4 @@ class ModelWorker:
 
         if self.low_vram_mode:
             torch.cuda.empty_cache()
-
         return final_save_path, uid

@@ -59,7 +59,7 @@ async def generate_3d_model(
             status_code=429,
         )
 
-    uid = uuid.uuid4()
+    uid = str(uuid.uuid4())
 
     # ---- load and preprocess the image ----
     try:
@@ -121,13 +121,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=str, default="0.0.0.0", help="Host IP address")
     parser.add_argument("--port", type=int, default=8081, help="Host port")
-    parser.add_argument("--model_path", type=str, default='tencent/Hunyuan3D-Omni', help="Path to the model checkpoint")
+    parser.add_argument("--model_path", type=str, default="tencent/Hunyuan3D-Omni", help="Path to the model checkpoint")
     parser.add_argument("--device", type=str, default="cuda", help="Device to run inference on")
     parser.add_argument("--limit-model-concurrency", type=int, default=2, help="Limit the number of concurrent model runs")
-    parser.add_argument('--enable_flashvdm', action='store_true', help='Use FlashVDM for faster decoding')
-    parser.add_argument('--low_vram_mode', action='store_true', help='Empty cuda cache after each model run to reduce VRAM usage.')
-    parser.add_argument('--cache-path', type=str, default='./gradio_cache', help='Path to store cached models.')
-    parser.add_argument('--seed', type=int, default=1234, help='Random seed for model initialization.')
+    parser.add_argument("--enable_flashvdm", action="store_true", help="Use FlashVDM for faster decoding")
+    parser.add_argument("--low_vram_mode", action="store_true", help="Empty cuda cache after each model run to reduce VRAM usage.")
+    parser.add_argument("--cache-path", type=str, default="./gradio_cache", help="Path to store cached models.")
+    parser.add_argument("--seed", type=int, default=1234, help="Random seed for model initialization.")
     parser.add_argument("--clean_cache", action="store_true", help="Clean cache folder before starting the server.")
     args = parser.parse_args()
     print(f"Starting server with args: {args}")
